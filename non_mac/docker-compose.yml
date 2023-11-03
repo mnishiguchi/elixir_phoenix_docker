@@ -8,6 +8,7 @@ services:
         - host_group_name=${host_group_name}
         - host_uid=${host_uid}
         - host_gid=${host_gid}
+        - host_ostype=${host_ostype}
     command: mix phx.server
     environment:
       DB_HOST: db
