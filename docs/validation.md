@@ -8,12 +8,22 @@
 Compose の構造と `bin/new`、`bin/setup` の動作を確認します。
 スクリプトのテストでは Docker の代替実行ファイルを使うため、Docker デーモンやネットワークは不要です。
 PyYAML の初回インストールにはネットワークが必要です。
+just を導入済みの場合は、引数の安全な受け渡し、サブディレクトリからの実行、
+テスト環境の指定、データを保持する停止、失敗の伝播も確認します。
+just がない場合はこの4件のみ省略し、既存のテストは実行します。
 
 ```sh
 python3 -m pip install PyYAML
 python3 -m unittest discover -s tests -v
 sh -n bin/setup
 sh -n bin/new
+```
+
+just を導入済みの場合は、形式とコマンド一覧も確認してください。
+
+```sh
+just --fmt --check
+just --list
 ```
 
 ## Compose 構成の確認
@@ -56,9 +66,14 @@ Python の標準ライブラリと Livebook イメージ内の Elixir を使い�
 docker compose --profile livebook down
 ```
 
+just 経由で統合テストを行う場合は、[開発手順の対応表](development.md#日常のコマンド)に従って
+生成・起動・テスト・Livebook 起動・停止をそれぞれ `just new smoke_app`、`just up`、
+`just test`、`just livebook`、`just down` に置き換えます。
+
 ## CI
 
 [GitHub Actions](../.github/workflows/validate.yml) は push と PR でオフラインテスト、
-シェル構文、Compose 構成を確認します。手動の `workflow_dispatch` ではアプリの生成、
+シェル構文、justfile の形式とコマンド一覧、Compose 構成を確認します。手動の `workflow_dispatch` ではアプリの生成、
 コンパイル、起動、Phoenix テスト、Livebook のチェックも実行し、最後にサービスを停止します。
+生成・起動・テスト・Livebook 起動・停止は just 経由で実行します。
 この検証は開発環境の動作確認であり、セキュリティ監査ではありません。

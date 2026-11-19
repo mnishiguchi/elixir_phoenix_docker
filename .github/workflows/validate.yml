@@ -10,10 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v3
+        with:
+          just-version: '1.59.0'
       - name: Install YAML parser
         run: python3 -m pip install PyYAML
       - name: Validate scripts and offline tests
         run: |
+          just --fmt --check
+          just --list
           sh -n bin/setup
           sh -n bin/new
           python3 -m unittest discover -s tests -v
@@ -30,10 +35,13 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v3
+        with:
+          just-version: '1.59.0'
       - name: Create app and initialize database
-        run: ./bin/new smoke_app
+        run: just new smoke_app
       - name: Start Phoenix
-        run: docker compose up -d web
+        run: just up
       - name: Check HTTP response
         run: |
           for attempt in $(seq 1 40); do
@@ -45,10 +53,10 @@ jobs:
           docker compose logs web
           exit 1
       - name: Run tests
-        run: docker compose run --rm -e MIX_ENV=test web mix test
+        run: just test
       - name: Check Livebook authentication and attached runtime
         run: |
-          docker compose --profile livebook up -d
+          just livebook
           python3 tests/smoke_livebook.py
       - name: Show logs on failure
         if: failure()
@@ -56,4 +64,4 @@ jobs:
         run: docker compose logs web db
       - name: Stop smoke-test services
         if: always()
-        run: docker compose --profile livebook down
+        run: just down

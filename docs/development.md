@@ -21,6 +21,7 @@ Docker Desktop の設定に応じた要件は [WSL2 の公式資料](https://doc
 | `Dockerfile` | Debian ベース、非 root ユーザーの開発イメージ |
 | `docker-compose.yml` | Phoenix、PostgreSQL、任意の Livebook |
 | `.env.example` | ローカル設定のひな形 |
+| `justfile` | 任意の開発コマンド集。既存スクリプトと Compose の薄いラッパー |
 | `bin/setup` | `.env` に UID/GID とランダムなローカル認証情報を作成 |
 | `bin/new` | `app/` にアプリを生成し、開発・テスト用の設定とキャッシュへのリンクを追加 |
 | `app/` | アプリのソース。必要に応じて独立した Git リポジトリで管理 |
@@ -38,18 +39,34 @@ Livebook の接続先と Livebook 自体の Elixir マイナーバージョン�
 
 すべてリポジトリのルートで実行します。
 
-| 操作 | コマンド |
-| --- | --- |
-| 起動 | `docker compose up -d web` |
-| ログ | `docker compose logs -f web` |
-| 停止（データ保持） | `docker compose down` |
-| シェル | `docker compose exec web sh` |
-| 別コンテナで IEx を起動 | `docker compose run --rm web iex -S mix` |
-| マイグレーション | `docker compose run --rm web mix ecto.migrate` |
-| アプリのテスト | `docker compose run --rm -e MIX_ENV=test web mix test` |
-| PostgreSQL に接続 | `docker compose exec db psql -U postgres` |
-| 再ビルドして起動 | `docker compose up -d --build web` |
-| 全ボリュームを削除 | `docker compose down -v` |
+just の導入は任意です。導入方法は[ルート README](../README.md#just-を使う場合任意)を参照してください。
+`just` または `just --list` で説明付きの一覧を表示できます。
+
+| 操作 | just | 直接実行 |
+| --- | --- | --- |
+| 初期設定 | `just setup` | `./bin/setup` |
+| 新規アプリ生成 | `just new hello_phoenix` | `./bin/new hello_phoenix` |
+| 起動 | `just up` | `docker compose up -d web` |
+| ログ | `just logs` | `docker compose logs -f web` |
+| 停止（データ保持） | `just down` | `docker compose --profile livebook down` |
+| シェル | `just shell` | `docker compose exec web sh` |
+| 別コンテナで IEx を起動 | `just iex` | `docker compose run --rm web iex -S mix` |
+| マイグレーション | `just migrate` | `docker compose run --rm web mix ecto.migrate` |
+| アプリのテスト | `just test` | `docker compose run --rm -e MIX_ENV=test web mix test` |
+| Livebook 起動 | `just livebook` | `docker compose --profile livebook up -d` |
+| PostgreSQL に接続 | — | `docker compose exec db psql -U postgres` |
+| 再ビルドして起動 | — | `docker compose up -d --build web` |
+| 全ボリュームを削除 | — | `docker compose down -v` |
+
+`up` 以降のアプリ操作には、`bin/new` による初期化、または以下の既存アプリの利用手順が必要です。
+`just shell` は起動済みの web を使うため、先に `just up` を実行します。
+`just iex`、`just test`、`just migrate` は web が停止中でも一時コンテナを使い、
+Compose が PostgreSQL の起動と準備完了を待ちます。`just test` は `MIX_ENV=test` を指定します。
+テスト用 DB の作成とマイグレーションは Phoenix 標準の `mix test` のエイリアスが行います。
+独自のエイリアスを持つ既存アプリは、そのアプリの手順に従ってください。
+
+サービス構成と `.env` の読み込みは Compose が管理します。just 独自の環境変数読み込みは行いません。
+just にデータ削除用のコマンドは用意していません。
 
 `down -v` は PostgreSQL のデータも完全に削除します。
 `POSTGRES_USER` を変更した場合は `psql` の `-U` も合わせてください。
@@ -101,7 +118,7 @@ http://localhost:8080/ を開き、ログに表示されるトークンで認証
    ```
 
 このスターターから `Dockerfile`、`docker-compose.yml`、`.env.example`、`bin/` を
-アプリの親ディレクトリへコピーして使うこともできます。アプリはその下の `app/` に配置します。
+アプリの親ディレクトリへコピーして使うこともできます。アプリはその下の `app/` に配置します。just を使う場合は `justfile` もコピーします。
 
 ## 参考資料
 

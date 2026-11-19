@@ -6,7 +6,7 @@
 
 | 資料 | 内容 |
 | --- | --- |
-| [開発手順](development.md) | コマンド、設定、Livebook、既存アプリ、OS 別の注意点 |
+| [開発手順](development.md) | just と Compose のコマンド、設定、Livebook、既存アプリ、OS 別の注意点 |
 | [トラブルシューティング](troubleshooting.md) | よくある問題の確認と対処 |
 | [移行手順](migration.md) | 旧ディレクトリ構成からの移行とデータの扱い |
 | [検証手順](validation.md) | オフラインテスト、Docker 統合テスト、CI |

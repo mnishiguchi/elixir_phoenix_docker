@@ -34,3 +34,22 @@ Elixir イメージのマニフェストには amd64 と arm64 が含まれま�
 
 Livebook のブラウザー画面での操作は未確認です。今回確認したのは HTTP 認証と
 Livebook の実際の attached-runtime プロトコルによる評価です。
+
+## just 導入後の追加確認
+
+同じ Linux x86_64 ホストで just 1.59.0 を使い、以下を確認しました。
+
+- 形式の検証と日本語の説明付きコマンド一覧の表示。
+- 既存8件と just 用4件を合わせた12件のオフラインテスト成功。
+  just 用テストは特殊文字を含む引数、実行ディレクトリ、テスト環境と停止処理、失敗の伝播を確認。
+- `just setup` が既存の `.env` を保持。
+- web 停止中の `just test` が PostgreSQL を起動し、生成アプリの5件のテストに成功。
+- `just migrate`、`just up`、`just shell`、`just iex`、`just logs` の実行。
+  シェルの作業ディレクトリは `/workspace/app`、UID は 1000。IEx で `SELECT 1` が成功。
+- `just livebook` 後の Phoenix HTTP 200、Livebook の認証と attached runtime の DB 問い合わせ。
+- `just down` で全サービスが停止し、停止前後で名前付きボリュームの一覧が一致。
+
+`just new` の引数受け渡しは代替スクリプトで検証しました。今回の追加確認では、
+既存の生成アプリを使用し、新規生成からの統合テストは再実行していません。
+新規生成を含む just 経由の確認は手動 CI ワークフローにも追加しましたが、CI はまだ実行していません。
+macOS・WSL2 における just の実機確認も未実施です。

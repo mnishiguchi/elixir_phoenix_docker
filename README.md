@@ -26,6 +26,23 @@ http://localhost:4000/ を開きます。初回はイメージの取得とコン
 
 停止するときは `docker compose down` を実行します。データベースのボリュームは残ります。
 
+## just を使う場合（任意）
+
+[just](https://just.systems/man/en/installation.html) を導入すると、開発コマンドを短く実行できます。
+macOS で Homebrew を使う場合は `brew install just`、Linux・WSL2 で Cargo を使う場合は
+`cargo install just --locked` でインストールできます。その他の導入方法は公式資料を参照してください。
+
+```sh
+just                       # コマンドと説明の一覧（just --list でも表示）
+just new hello_phoenix      # 新規アプリの生成と初期化
+just up                    # 起動
+just test                  # アプリのテスト
+just down                  # Livebook を含めて停止（データ保持）
+```
+
+just がなくても、上記のスクリプトと Compose コマンドで操作できます。
+コマンドの対応表は[開発手順](docs/development.md#日常のコマンド)を参照してください。
+
 ## 詳しい使い方
 
 - [開発手順](docs/development.md)：日常のコマンド、Livebook、既存アプリの利用、OS 別の注意点
