@@ -1,0 +1,37 @@
+#!/bin/sh
+# ホストに合わせた開発用設定を作成します。既存の .env は上書きしません。
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
+
+if [ -e .env ]; then
+  printf '%s\n' '.env already exists; keeping your settings unchanged.'
+  exit 0
+fi
+
+if [ ! -f .env.example ]; then
+  printf '%s\n' 'Missing .env.example' >&2
+  exit 1
+fi
+
+uid=$(id -u)
+gid=$(id -g)
+if [ "$uid" -eq 0 ]; then
+  printf '%s\n' 'Run this as your normal user (not root/sudo).' >&2
+  exit 1
+fi
+
+# macOS、Linux、WSL2 標準の `od` と `tr` を使い、Python/openssl への依存を避けます。
+random_hex() { od -An -N24 -tx1 /dev/urandom | tr -d ' \n'; }
+password=$(random_hex)
+cookie=$(random_hex)
+umask 077
+awk -v uid="$uid" -v gid="$gid" -v pw="$password" -v cookie="$cookie" '
+  /^APP_UID=/          { print "APP_UID=" uid; next }
+  /^APP_GID=/          { print "APP_GID=" gid; next }
+  /^POSTGRES_PASSWORD=/{ print "POSTGRES_PASSWORD=" pw; next }
+  /^ERLANG_COOKIE=/    { print "ERLANG_COOKIE=" cookie; next }
+                       { print }
+' .env.example > .env
+printf '%s\n' 'Created .env (host UID/GID, local PostgreSQL password, and Erlang cookie).'

@@ -1,18 +1,41 @@
-# elixir_phoenix_docker
+# Elixir / Phoenix + Docker Compose
 
-Dockerfile and docker-compose.yml for multiple OS
+Phoenix のローカル開発用スターターです。macOS、Linux、Windows + WSL2 で
+共通の Docker Compose 構成を使い、PostgreSQL と任意の Livebook を組み合わせます。
+本番環境へのデプロイは対象外です。
 
-- `mac`
-  - For `Docker Desktop for Mac`
-  - `mac_with_livebook`
-    - with livebook
-- `non_mac`
-  - For not `Docker Desktop for Mac` like `Docker Desktop for Windows` (WSL2) and Linux and so on.
-  - `non_mac_with_livebook`
-    - with livebook.
-- `mixed`
-  - For mixed OS project
-  - `mixed_with_livebook`
-    - with livebook.
-  - `mixed_debian`
-    - with Debian image.
+## はじめに
+
+Docker Engine と Docker Compose v2 以降、または Docker Desktop を用意してください。
+ホストに Elixir、Erlang、PostgreSQL、Node.js をインストールする必要はありません。
+Windows では PowerShell ではなく WSL2 の Linux シェルを使います。
+
+リポジトリを取得し、ルートディレクトリで実行します。
+
+```sh
+./bin/new hello_phoenix
+docker compose up -d web
+```
+
+http://localhost:4000/ を開きます。初回はイメージの取得とコンパイルに時間がかかります。
+起動状況は `docker compose logs -f web` で確認できます。
+
+`bin/new` はローカル設定と認証情報を `.env` に作成し、`app/` に Phoenix アプリを
+生成してデータベースと依存関係を初期化します。既存の `.env` は保持し、
+既存の `app/` には上書きしません。生成した `app/` はこのリポジトリの Git 管理対象外です。
+
+停止するときは `docker compose down` を実行します。データベースのボリュームは残ります。
+
+## 詳しい使い方
+
+- [開発手順](docs/development.md)：日常のコマンド、Livebook、既存アプリの利用、OS 別の注意点
+- [トラブルシューティング](docs/troubleshooting.md)
+- [旧構成からの移行](docs/migration.md)
+- [資料一覧](docs/README.md)：設計判断、検証手順、実測記録
+
+Linux x86_64 で動作確認済みです。他の対象環境の検証状況は
+[検証記録](docs/worklog/20261119-development-smoke-test.md)を参照してください。
+
+## ライセンス
+
+[MIT License](LICENSE) を適用します。

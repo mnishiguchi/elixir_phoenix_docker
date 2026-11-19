@@ -1,0 +1,7 @@
+# Windows の Git/WSL2 で取得してもシェルスクリプトを実行できるよう、改行を統一します。
+* text=auto
+bin/* text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.exs text eol=lf

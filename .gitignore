@@ -1,3 +1,16 @@
+# ローカル認証情報と設定
 .env
-sample/
-docker-compose.override.yml
+.env.*
+!.env.example
+compose.override.yaml
+compose.override.yml
+
+# 生成した Phoenix アプリは、このテンプレートとは別に管理します。
+/app/
+
+# エディター用ファイルと生成物
+.DS_Store
+.elixir_ls/
+*.beam
+__pycache__/
+.pytest_cache/

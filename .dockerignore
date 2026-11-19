@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+app
+**/_build
+**/deps
+**/node_modules
+**/.elixir_ls
+**/.fetch
+*.tar.gz
+**/__pycache__
+**/.pytest_cache

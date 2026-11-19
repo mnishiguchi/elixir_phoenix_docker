@@ -1,0 +1,59 @@
+name: Validate Docker Phoenix starter
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install YAML parser
+        run: python3 -m pip install PyYAML
+      - name: Validate scripts and offline tests
+        run: |
+          sh -n bin/setup
+          sh -n bin/new
+          python3 -m unittest discover -s tests -v
+      - name: Validate both Compose configurations
+        run: |
+          ./bin/setup
+          docker compose config -q
+          docker compose --profile livebook config -q
+
+  smoke:
+    if: github.event_name == 'workflow_dispatch'
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create app and initialize database
+        run: ./bin/new smoke_app
+      - name: Start Phoenix
+        run: docker compose up -d web
+      - name: Check HTTP response
+        run: |
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:4000/ >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose logs web
+          exit 1
+      - name: Run tests
+        run: docker compose run --rm -e MIX_ENV=test web mix test
+      - name: Check Livebook authentication and attached runtime
+        run: |
+          docker compose --profile livebook up -d
+          python3 tests/smoke_livebook.py
+      - name: Show logs on failure
+        if: failure()
+        # Livebook の起動ログにはログイントークンが含まれるため、出力対象から除外します。
+        run: docker compose logs web db
+      - name: Stop smoke-test services
+        if: always()
+        run: docker compose --profile livebook down

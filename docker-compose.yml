@@ -1,0 +1,78 @@
+# Docker Compose v2 以降を使います。旧形式の `version:` と `links:` は不要です。
+name: ${COMPOSE_PROJECT_NAME:-elixir_phoenix_dev}
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        ELIXIR_IMAGE: ${ELIXIR_IMAGE:-elixir:1.19.5-otp-28-slim}
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
+        PHX_NEW_VERSION: ${PHX_NEW_VERSION:-1.8.16}
+    hostname: web
+    domainname: phoenix.test
+    init: true
+    working_dir: /workspace/app
+    # Erlang のノード間通信を有効にし、Livebook から Phoenix ノードへ接続します。
+    command: ["sh", "-c", "exec elixir --name phoenix@web.phoenix.test --cookie \"$$ERLANG_COOKIE\" -S mix phx.server"]
+    environment:
+      MIX_ENV: dev
+      MIX_DEPS_PATH: /cache/deps
+      MIX_BUILD_ROOT: /cache/_build
+      DB_HOST: db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PORT: "4000"
+      ERLANG_COOKIE: ${ERLANG_COOKIE:-local_development_only_cookie}
+    ports:
+      - "127.0.0.1:${PHX_PORT:-4000}:4000"
+    volumes:
+      - .:/workspace
+      - mix_deps:/cache/deps
+      - mix_build:/cache/_build
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - web.phoenix.test
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    # DB のポートはホストに公開しません。接続には `docker compose exec db psql` を使います。
+
+  livebook:
+    image: ghcr.io/livebook-dev/livebook:0.19.10
+    profiles: [livebook]
+    depends_on:
+      - web
+    ports:
+      - "127.0.0.1:${LIVEBOOK_PORT:-8080}:8080"
+      - "127.0.0.1:${LIVEBOOK_IFRAME_PORT:-8081}:8081"
+    environment:
+      LIVEBOOK_HOME: /data
+      LIVEBOOK_DATA_PATH: /data
+      LIVEBOOK_DEFAULT_RUNTIME: "attached:phoenix@web.phoenix.test:${ERLANG_COOKIE:-local_development_only_cookie}"
+      # トークン認証は有効です。`docker compose logs livebook` でトークンを確認できます。
+    volumes:
+      - livebook_data:/data
+
+volumes:
+  postgres_data:
+  mix_deps:
+  mix_build:
+  livebook_data:

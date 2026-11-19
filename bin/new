@@ -1,0 +1,78 @@
+#!/bin/sh
+# app/ に Phoenix アプリを生成し、Compose ネットワーク用の設定を追加します。
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
+
+if [ "$#" -ne 1 ]; then
+  printf 'Usage: %s APP_NAME (lowercase snake_case)\n' "$0" >&2
+  exit 2
+fi
+
+app_name=$1
+# 名前は小文字の英字で始まる snake_case とし、連続するアンダースコアは許可しません。
+if ! printf '%s\n' "$app_name" | grep -Eq '^[a-z][a-z0-9]*(_[a-z0-9]+)*$'; then
+  printf 'Use a lowercase snake_case application name (example: hello_phoenix).\n' >&2
+  exit 2
+fi
+
+if [ -e app ] || [ -L app ]; then
+  printf '%s\n' 'app/ already exists; refusing to overwrite it.' >&2
+  exit 1
+fi
+
+app_module=$(printf '%s\n' "$app_name" | awk -F_ '{for(i=1;i<=NF;i++) printf "%s%s", toupper(substr($i,1,1)), substr($i,2)}')
+
+"$ROOT/bin/setup"
+docker compose build web
+docker compose run --rm --no-deps --workdir /workspace web \
+  mix phx.new app --app "$app_name" --module "$app_module" --no-install
+
+if [ ! -f app/config/dev.exs ] || [ ! -f app/config/test.exs ]; then
+  printf '%s\n' 'Phoenix generation did not create the expected config files.' >&2
+  exit 1
+fi
+
+# Phoenix のアセット処理はアプリからの相対パスで deps/ と _build/ を参照します。
+# 名前付きボリュームにデータを保存しつつ、標準のパスからも参照できるようにします。
+ln -s /cache/deps app/deps
+ln -s /cache/_build app/_build
+
+# Phoenix が生成した設定を保ち、Docker 用に必要な値だけを上書きします。
+cat >> app/config/dev.exs <<'CONFIG'
+
+# コンテナ用の上書き設定（elixir_phoenix_docker/bin/new が生成）。
+import_config "docker.exs"
+CONFIG
+
+cat >> app/config/test.exs <<'CONFIG'
+
+# コンテナ用のデータベース設定（elixir_phoenix_docker/bin/new が生成）。
+import_config "docker_test.exs"
+CONFIG
+
+cat > app/config/docker.exs <<CONFIG
+import Config
+
+config :${app_name}, ${app_module}.Repo,
+  hostname: System.get_env("DB_HOST", "localhost"),
+  username: System.get_env("DB_USER", "postgres"),
+  password: System.get_env("DB_PASSWORD", "postgres")
+
+config :${app_name}, ${app_module}Web.Endpoint,
+  http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))]
+CONFIG
+
+cat > app/config/docker_test.exs <<CONFIG
+import Config
+
+config :${app_name}, ${app_module}.Repo,
+  hostname: System.get_env("DB_HOST", "localhost"),
+  username: System.get_env("DB_USER", "postgres"),
+  password: System.get_env("DB_PASSWORD", "postgres")
+CONFIG
+
+printf '\n%s\n' 'Generated app/ with Docker-specific config. Fetching dependencies and creating the database...'
+docker compose run --rm web mix setup
+printf '\n%s\n' 'Ready. Run: docker compose up -d web'
